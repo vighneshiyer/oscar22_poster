@@ -117,7 +117,7 @@ body > header h2 {
 }
 body > header address {
   margin-bottom: 0.25rem;
-  margin-top: 0.75rem;
+  margin-top: 0.25rem;
 }
 body > header .publication-info {
   display: none;

@@ -1,57 +1,284 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Building your own HTML poster — A tutorial on using this template to make your own posters</title>
-    <link rel="stylesheet" href="poster.css">
-    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1">
-    <!-- Based on a poster template from https://github.com/cpitclaudel/academic-poster-template -->
+{% extends "poster.jinja2" %}
 
-          <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-              <script type="text/javascript" id="HighlightJS-script" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js" integrity="sha512-yUUc0qWm2rhM7X0EFe82LNnv2moqArj5nro/w1bi05A09hRVeIZbN6jlMoyu0+4I/Bu4Ck/85JQIU82T82M28w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/scala.min.js" integrity="sha512-17yQnEpAzLAY3RDPjYqCLa44Eh+N7uDNoB4aUNneHbs7nF260eUc6mgGpNvEUlTdJQC5hD+fgDK7c5NJ/KDbuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/verilog.min.js" integrity="sha512-t3zKu+I8HGgPlmP/BA571kXuuhPkhetB6/Q6+/CZJ/v5yf7fx1xkforaFrCEDJEBprrQXW7fXtMKA8CjilibBA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css" integrity="sha512-hasIneQUHlh06VNBe7f6ZcHmeRTLIaQWFd43YriJ0UND19bvYRauxthDg8E4eVNPm9bRUhr5JGeqH7FRFXQu5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-      <script defer>hljs.highlightAll();</script>
-              <link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&amp;family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet">
-        <style type="text/css">
-  html { font-size: 1.15rem }
+{## Header ##}
+
+{% set poster_title = "SimCommand: A High-Performance RTL Testbench API" %}
+{# ‘poster_subtitle’ is optional; use "" to hide it #}
+{% set poster_subtitle = "" %}
+{# Change ‘venue’ to a conference or workshop name if any #}
+{% set venue = "OSCAR 22" %}
+{# ‘webpage_title’ is displayed in the browser’s top bar #}
+{% set webpage_title = poster_title + " — " + poster_subtitle %}
+{# ‘project_url’ is used in the footer and for the logo #}
+{% set project_url = "https://github.com/vighneshiyer/simcommand" %}
+
+{# Publication info is hidden by default (.publication-info in CSS) #}
+{% set pub_datetime_iso = "2020-09-08" %}
+{% set pub_date = "September 8, 2020" %}
+
+{% block custom_head %}
+<style type="text/css">
+    html { font-size: 1.15rem }
+    .container{
+      display: grid;
+      grid-auto-flow: column;
+      column-gap: 1em;
+    }
+    th {
+      border-bottom: 1px solid;
+    }
 </style>
-  </head>
+{% endblock %}
 
-  <body vocab="http://schema.org/" typeof="ScholarlyArticle">
-    <header role="banner">
-      <aside>
-          <a href="https://github.com/cpitclaudel/academic-poster-template"><img src="logo.svg" alt="Tutorial logo"></a>
-      </aside>
-      <div>
-        <h1 property="headline">Building your own HTML poster</h1>
-                  <h2 property="alternativeHeadline">A tutorial on using this template to make your own posters</h2>
-                <address>
-              <a property="author">Clément Pit-Claudel<sup>a</sup></a>
-<br />  <sup>a</sup><a property="sourceOrganization">MIT CSAIL</a>
-        </address>
-        <span class="publication-info">
-                      <span property="publisher">Unpublished</span>,
-            <time pubdate property="datePublished" datetime="2020-09-08">September 8, 2020</time>
-                  </span>
+{% block authors %}
+  {# Put authors here, with one link per author. #}
+  <a property="author">Vighnesh Iyer</a>,
+  <a property="author">Kevin Laeufer</a>,
+  <a property="author">Koushik Sen</a>,
+  <a property="author">Borivoje Nikolic</a>
+{% endblock %}
+
+{% block affiliations %}
+  <a property="sourceOrganization">UC Berkeley</a>
+{% endblock %}
+
+{# Project logos shown on the left side #}
+{% block project_logos %}
+  <a href="{{ project_url }}"><img src="logo.svg" alt="Tutorial logo"></a>
+{% endblock %}
+
+{# Extra logos shown on the right side #}
+{% block logos %}
+  <a href="https://csail.mit.edu"><img style="background: white" src="csail.png" alt="MIT CSAIL Logo"></a>
+{% endblock %}
+
+{### Footer ##}
+
+{% block project_link %}
+  <a href="{{ project_url }}">{{ project_url }}</a>
+{% endblock %}
+
+{% block contact_information %}
+  vighnesh.iyer@berkeley.edu
+{% endblock %}
+
+{% block credits %}
+  <span class="credits">
+    Open-Source Computer Architecture Research (OSCAR) Workshop @ ISCA 2022
+  </span>
+{% endblock %}
+
+{% block contents %}
+  <article style="hyphens:none;">
+    {# Using <h3> inside the <header> makes the structure evident to screen readers #}
+    <header><h3>Testbench APIs</h3></header>
+    <p class="center">Testbench APIs provide an interface between <i>testbench logic</i> and a <i>simulator backend</i></p>
+
+    <p><strong>Simulator backends</strong>: Verilator, Icarus, VCS</p>
+
+    <p><strong>Native Testbench APIs</strong>: C++, SystemVerilog</p>
+
+    <ul>
+      <li>Compiled into simulator → performant</li>
+      <li>C++ with Verilator does not suppport fork/join</li>
+      <li>SystemVerilog verification features (e.g. OOP, SVA) not supported by open source tools</li>
+    </ul>
+
+    <p><strong>General-Purpose Testbench APIs</strong>: cocotb (Python), chiseltest (Scala)</p>
+
+    <ul>
+      <li>Support for fork/join testbench threading</li>
+      <li>Portability across simulator backends</li>
+      <li>Reuse of host language libraries and ecosystem</li>
+      <li>Mainstream IDE support</li>
+    </ul>
+  </article>
+
+  <article>
+    <header><h3>Testbench API Primitives</h3></header>
+
+    <p class="center">All APIs support three basic primitives</p>
+    <ul>
+    <li><strong><code>poke</code></strong>: <code>dut.signal = 100</code></li>
+    <li><strong><code>peek</code></strong>: <code>value = dut.signal</code></li>
+    <li><strong><code>step</code></strong>: <code>repeat (cycles) @(posedge clk)</code></li>
+    </ul>
+  </article>
+
+  <article style="hyphens:none;">
+    <header><h3>Expressing Parallelism</h3></header>
+    <pre><code class="small language-verilog"> module example (input clk, input [31:0] a, b);</code></pre>
+    <div class="container">
+
+    <div class="col fragment">
+<pre><code class="language-scala small">a.poke(1)
+clk.step(4)
+a.poke(2) </code></pre>
+    </div>
+
+    <div class="col fragment">
+<pre><code class="language-scala small">b.poke(100)
+clk.step(2)
+b.poke(200)
+clk.step(4)
+b.poke(300)</code></pre>
+    </div>
+    </div>
+
+    <p class="fragment center">We want to run both code segments in parallel, synchronized on clock edges.</p>
+  </article>
+
+<article>
+  <header><h3>"Manual" Thread Interleaving</h3></header>
+  <p class="center">Without parallelism primitives, we can describe threads as cycle-by-cycle FSMs in the testbench</p>
+  <div class="container">
+    <div class="col fragment">
+      <pre><code class="language-scala small">trait Thread {
+  def step(): Unit
+  def done(): Boolean
+}
+class a extends Thread {
+  var cycle = 0
+  def step() = {
+    if (cycle == 0)
+      dut.a.poke(1.U)
+    else if (cycle >= 4)
+      dut.a.poke(2.U)
+    cycle = cycle + 1
+  }
+  def done() = (cycle == 5)
+}
+val threads = Seq(a(), b())
+while (!threads.all(_.done))
+threads.forEach(_.step())</code></pre>
+  </div>
+  <div class="col fragment" style="hyphens:none; display:grid; align-content:center;">
+    <ul>
+      <li class="fragment">Step each thread until they are all done</li>
+      <li class="fragment">Can emulate any simulation threading scenario</li>
+      <li class="fragment">Reusable</li>
+      <li class="fragment"><i>However</i>, painful to write and debug</li>
+    </ul>
+  </div>
+  </div>
+  </article>
+
+  <article>
+  <header><h3>Fork/Join Construct</h3></header>
+
+  <p class="center"><code>fork/join</code> is a universal primitive to express testbench logic parallelism</p>
+  <div class="container">
+  <div class="col">
+  <pre><code class="language-scala small">val a = fork {
+  a.poke(1.U)
+  clk.step(4)
+  a.poke(2.U)
+}
+  val b = fork {
+  b.poke(100.U)
+  clk.step(2)
+  b.poke(200.U)
+  clk.step(4)
+  b.poke(300.U)
+}
+a.join
+b.join</code></pre>
+  </div>
+  <div class="col" style="display:grid; align-content:center;">
+  <ul>
+    <li class="fragment">fork spawns a simulation thread
+    <li class="fragment">join blocks until the child thread is done</li>
+  <!--<ul class="small"><li>returns a handle that can be ‘join’ed later</li></ul>-->
+    <li class="fragment">Threads are synchronized on clock steps
+    <ul class="small">
+      <li>Once the main thread steps, all child threads are advanced until they step</li>
+      <!--<li>Advance a cycle in the RTL simulator</li>-->
+      <!--<li>Repeat until main thread ends</li>-->
+    </ul>
+    </li>
+  </ul>
+  </div>
+  </div>
+  </article>
+
+  <article style="hyphens:none;">
+  <header><h3>Chiseltest Implementation</h3></header>
+  <ul>
+    <li class="fragment">Fork-ing a simulation thread, spawns a <em>new</em> JVM thread</li>
+    <li class="fragment">On every timestep, the chiseltest scheduler runs each thread, one at a time. Each thread can:
+    <ul class="small">
+      <li>Terminate</li>
+      <li>Peek / Poke</li>
+      <li>Fork new threads</li>
+      <li>Yield (step or join)</li>
+    </ul></li>
+    <li class="fragment">Parking and unparking threads on a single executor is <strong>slow</strong></li>
+    </ul>
+
+    <hr>
+    <p class="small center fragment">DecoupledGCD testbench benchmark</p>
+    <table class="small fragment">
+    <thead>
+    <tr>
+    <th>Platform</th>
+    <th>Throughput</th>
+    <th>Slowdown</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!--<tr>
+    <td>SystemVerilog + commercial simulator</td>
+    <td>412 kHz</td>
+    <td>-</td>
+    </tr>-->
+    <tr>
+    <td>Chiseltest with manual thread interleaving</td>
+    <td>220 kHz</td>
+    <!--<td>1.9x</td>-->
+    <td>-</td>
+    </tr>
+    <tr>
+    <td>Chiseltest with fork/join threading</td>
+    <td>7.8 kHz</td>
+    <!--<td>53x</td>-->
+    <td>28x</td>
+    </tr>
+    <!--<tr>
+    <td>cocotb</td>
+    <td>3.8 kHz</td>
+    <td>108x</td>
+    <td>58x</td>
+    </tr>-->
+    </tbody>
+    </table>
+
+    <!-- <p class="center">The overhead of simulation threads in chiseltest is too high.</p> -->
+    </article>
+
+  <article style="hyphens:none;">
+  <header><h3>A Functional Testbench API</h3></header>
+  <p class="center"><strong>FP Principle</strong>: Separate description from interpretation</p>
+  </article>
+
+  <article>
+    <header><h3>Imperative vs Functional Testbench</h3></header>
+    <div class="container">
+    <div class="col">
+    <p>Imperative, statements, eager</p>
+<pre><code class="language-scala small">dut.peek()
+dut.clk.step()
+dut.poke()</code></pre>
       </div>
-      <aside>
-          <a href="https://csail.mit.edu"><img style="background: white" src="csail.png" alt="MIT CSAIL Logo"></a>
-      </aside>
-    </header>
-
-    <main property="articleBody">
-        <article property="abstract">
-        <header><h3>Abstract</h3></header>
-
-    <p>Academic posters are usually designed using presentation software and distributed as images or PDFs.</p>
-
-    <p>While PDFs are fine for printing posters, they are not particularly user-friendly: they are hard to read on small screens, don't support resizing text or increasing contrast, and often don't work nicely with screen readers.</p>
-
-    <p>The recent shift to online conferences is a great opportunity to reconsider our poster-making tools, and it turns out that plain HTML5 + CSS works pretty well for making (more) accessible posters.</p>
-
-    <p>This template is released under a permissive license: all we ask if you use it for your own posters is that you leave a one-line comment in the HTML sources.</p>
+      <div class="col">
+    <p>Functional, a value (data), lazy</p>
+    <pre><code class="language-scala small">val program = for {
+  _ <- poke
+  _ <- step
+  _ <- peek
+} yield ()
+</code></pre>
+      </div>
+    </div>
   </article>
 
   <article>
@@ -315,16 +542,4 @@
     <img style="width: 70%" src="logo.svg" alt="Project logo" />
     <figcaption>A stand-alone figure to fill the remaining space.</figcaption>
   </figure>
-    </main>
-
-    <footer>
-      <address class="monospace">  <a href="https://github.com/cpitclaudel/academic-poster-template">https://github.com/cpitclaudel/academic-poster-template</a>
-</address>
-      <address class="monospace">  clement.pitclaudel@live.com
-</address>
-                    <span class="credits">
-          Based on an <a href="https://github.com/cpitclaudel/academic-poster-template">open poster template</a>.
-        </span>
-          </footer>
-  </body>
-</html>
+{% endblock %}
