@@ -44,7 +44,8 @@
 
 {# Project logos shown on the left side #}
 {% block project_logos %}
-  <a href="{{ project_url }}"><img src="logo.svg" alt="Tutorial logo"></a>
+  <!--<a href="{{ project_url }}"><img src="logo.svg" alt="Tutorial logo"></a>-->
+  <a href="{{ project_url }}"><img width="200px" src="chisel_logo.svg" alt="Chisel - chiseltest"></a>
 {% endblock %}
 
 {# Extra logos shown on the right side #}
@@ -87,37 +88,39 @@
     <p><strong>General-Purpose Testbench APIs</strong>: cocotb (Python), chiseltest (Scala)</p>
 
     <ul>
-      <li>Support for fork/join testbench threading</li>
+    <!--<li>Support for fork/join testbench threading</li>-->
       <li>Portability across simulator backends</li>
       <li>Reuse of host language libraries and ecosystem</li>
-      <li>Mainstream IDE support</li>
+      <!--<li>Mainstream IDE support</li>-->
     </ul>
   </article>
 
   <article>
     <header><h3>Testbench API Primitives</h3></header>
 
-    <p class="center">All APIs support three basic primitives</p>
+    <!--<p class="center">All APIs support three basic primitives</p>-->
     <ul>
     <li><strong><code>poke</code></strong>: <code>dut.signal = 100</code></li>
     <li><strong><code>peek</code></strong>: <code>value = dut.signal</code></li>
     <li><strong><code>step</code></strong>: <code>repeat (cycles) @(posedge clk)</code></li>
+    <li><strong><code>fork/join</code></strong> to express testbench parallelism</li>
     </ul>
-  </article>
+    <!-- <p class="center">Some also support fork/join primitives to express testbench parallelism</p>-->
+    </article>
 
   <article style="hyphens:none;">
     <header><h3>Expressing Parallelism</h3></header>
-    <pre><code class="small language-verilog"> module example (input clk, input [31:0] a, b);</code></pre>
+    <pre><code class="language-verilog medium"> module example (input clk, input [31:0] a, b);</code></pre>
     <div class="container">
 
     <div class="col fragment">
-<pre><code class="language-scala small">a.poke(1)
+<pre><code class="language-scala medium">a.poke(1)
 clk.step(4)
 a.poke(2) </code></pre>
     </div>
 
     <div class="col fragment">
-<pre><code class="language-scala small">b.poke(100)
+<pre><code class="language-scala medium">b.poke(100)
 clk.step(2)
 b.poke(200)
 clk.step(4)
@@ -125,14 +128,11 @@ b.poke(300)</code></pre>
     </div>
     </div>
 
-    <p class="fragment center">We want to run both code segments in parallel, synchronized on clock edges.</p>
-  </article>
-
-<article>
-  <header><h3>"Manual" Thread Interleaving</h3></header>
-  <p class="center">Without parallelism primitives, we can describe threads as cycle-by-cycle FSMs in the testbench</p>
+    <!--<p class="fragment center">We want to run both code segments in parallel, synchronized on clock edges.</p>-->
+    <!-- <p class="center">Without parallelism primitives, we can describe threads as cycle-by-cycle FSMs in the testbench</p>-->
   <div class="container">
-    <div class="col fragment">
+  <div class="col fragment">
+  <p class="center medium">Manual thread interleaving</p>
       <pre><code class="language-scala small">trait Thread {
   def step(): Unit
   def done(): Boolean
@@ -152,24 +152,15 @@ val threads = Seq(a(), b())
 while (!threads.all(_.done))
 threads.forEach(_.step())</code></pre>
   </div>
-  <div class="col fragment" style="hyphens:none; display:grid; align-content:center;">
-    <ul>
+  <div class="col fragment" style="hyphens:none"><!--; display:grid; align-content:center;">-->
+    <!--<ul>
       <li class="fragment">Step each thread until they are all done</li>
       <li class="fragment">Can emulate any simulation threading scenario</li>
       <li class="fragment">Reusable</li>
       <li class="fragment"><i>However</i>, painful to write and debug</li>
-    </ul>
-  </div>
-  </div>
-  </article>
-
-  <article>
-  <header><h3>Fork/Join Construct</h3></header>
-
-  <p class="center"><code>fork/join</code> is a universal primitive to express testbench logic parallelism</p>
-  <div class="container">
-  <div class="col">
-  <pre><code class="language-scala small">val a = fork {
+      </ul>-->
+  <p class="center medium">fork/join threading</p>
+  <pre><code class="language-scala medium">val a = fork {
   a.poke(1.U)
   clk.step(4)
   a.poke(2.U)
@@ -183,6 +174,16 @@ threads.forEach(_.step())</code></pre>
 }
 a.join
 b.join</code></pre>
+  </div>
+  </div>
+  <p class="center">Threads are synchronized on clock edges</p>
+  </article>
+
+  <article style="display: none;">
+  <header><h3>Fork/Join Construct</h3></header>
+  <p class="center"><code>fork/join</code> is a universal primitive to express testbench logic parallelism</p>
+  <div class="container">
+  <div class="col">
   </div>
   <div class="col" style="display:grid; align-content:center;">
   <ul>
@@ -201,23 +202,12 @@ b.join</code></pre>
   </div>
   </article>
 
-  <article style="hyphens:none;">
-  <header><h3>Chiseltest Implementation</h3></header>
-  <ul>
-    <li class="fragment">Fork-ing a simulation thread, spawns a <em>new</em> JVM thread</li>
-    <li class="fragment">On every timestep, the chiseltest scheduler runs each thread, one at a time. Each thread can:
-    <ul class="small">
-      <li>Terminate</li>
-      <li>Peek / Poke</li>
-      <li>Fork new threads</li>
-      <li>Yield (step or join)</li>
-    </ul></li>
-    <li class="fragment">Parking and unparking threads on a single executor is <strong>slow</strong></li>
-    </ul>
 
-    <hr>
-    <p class="small center fragment">DecoupledGCD testbench benchmark</p>
-    <table class="small fragment">
+
+    <article>
+    <header><h3>Motivation: Overhead of Fork/Join</h3></header>
+    <table class="small fragment" style="caption-side: bottom;">
+    <caption>DecoupledGCD benchmark on Verilator</caption>
     <thead>
     <tr>
     <th>Platform</th>
@@ -243,23 +233,83 @@ b.join</code></pre>
     <!--<td>53x</td>-->
     <td>28x</td>
     </tr>
-    <!--<tr>
-    <td>cocotb</td>
+    <tr>
+    <td>cocotb with async/await</td>
     <td>3.8 kHz</td>
     <td>108x</td>
-    <td>58x</td>
-    </tr>-->
+    <!--<td>58x</td>-->
+    </tr>
     </tbody>
     </table>
 
-    <!-- <p class="center">The overhead of simulation threads in chiseltest is too high.</p> -->
+    <p class="center">We want to design an open-source, <strong>high-performance</strong>, general-purpose testbench API with fork/join support</p>
+    <!-- The overhead of simulation threads in chiseltest is too high.</p> -->
+    </article>
+
+    <article style="hyphens:none;">
+    <header><h3>Sources of Perf Overhead <span class="small">in chiseltest</span></h3></header>
+  <ul>
+    <li class="fragment">Fork-ing spawns a <em>new</em> JVM thread</li>
+    <li class="fragment">On every timestep, the chiseltest scheduler runs each thread, one at a time. Each thread can:
+    <ul class="small">
+      <li>Terminate, peek / poke, fork new threads, yield (step or join)</li>
+    </ul></li>
+    <li class="fragment">Parking and unparking threads is <strong>slow</strong></li>
+    </ul>
     </article>
 
   <article style="hyphens:none;">
   <header><h3>A Functional Testbench API</h3></header>
   <p class="center"><strong>FP Principle</strong>: Separate description from interpretation</p>
+  <pre class="fragment"><code class="language-scala small">sealed trait Command[R] // R = return type of the Command
+case class Peek(signal: I) extends Command[I]
+case class Poke(signal: I, value: I) extends Command[Unit]
+case class Step(cycles: Int) extends Command[Unit]</pre></code>
+  <p class="center">Instances of these classes only <em>describe</em> the actions of peeking, poking, or stepping</p>
+  <!--<ul class="fragment">-->
+  <!--<li>Instantiating these classes doesn’t <em>do anything</em></li>-->
+  <!--<li>They only <em>describe</em> the actions of peeking, poking, or stepping</li>-->
+  <!--<li>An <em>interpreter</em> actually runs the actions</li>-->
+  <!--</ul>-->
   </article>
 
+  <article>
+  <header><h3>Command Continuations</h3></header>
+  <p class="center"><code>flatMap</code> describes 'unwrapping' the return value of a <code>Command</code>, and continuing with another function<//p>
+<!--<pre class="fragment"><code class="language-scala small">case class Return[R](retval: R) extends Command[R]
+case class Cont[R1, R2](c: Command[R1],
+  then: R1 => Command[R2]) extends Command[R2]</pre></code>
+<pre class="fragment"><code class="language-scala small">def flatMap[R1, R2](c: Command[R1],
+    f: R1 => Command[R2]): Command[R2] =
+  c match {
+    case Return(retval) => f(retval)
+    case cmd: Command[R1] => Cont(cmd, f)
+  }
+  </pre></code>-->
+
+  <!--<p class="center fragment">We can describe executing a command after another</p>-->
+
+  <pre class="fragment"><code class="language-scala small">val program: Command[Boolean] =
+  Poke(dut.enq.valid, 1.B).flatMap {
+    _ => Step(1).flatMap {
+      _ => Peek(dut.deq.valid).map {
+        p => p.litValue == 1
+      }
+    }
+  }</pre></code>
+  <img class="fragment" src="./command_sequencing.svg"/>
+  </article>
+
+  <article style="hyphens:none;">
+    <header><h3>For-Comprehension Sugar</h3></header>
+<pre class="fragment"><code class="language-scala small">val program: Command[Boolean] = for {
+    _ <- Poke(dut.enq.valid, 1.B)
+    _ <- Step(1)
+    p <- Peek(dut.deq.valid)
+} yield p.litValue == 1</pre></code>
+<p class="fragment center"><code>program</code> is just a value, but <em>looks</em> like imperative code</p>
+  </article>
+<!--
   <article>
     <header><h3>Imperative vs Functional Testbench</h3></header>
     <div class="container">
@@ -279,267 +329,174 @@ dut.poke()</code></pre>
 </code></pre>
       </div>
     </div>
-  </article>
+    </article>
+    -->
 
-  <article>
-    <header><h3>Using this template</h3></header>
-    <p>There are two ways to use this template: directly editing the HTML, and using Jinja2 templates.</p>
-  </article>
-
-  <article>
-    <header><h3>Editing the HTML directly</h3></header>
-
-    <p>This is the simplest way to get started, since it just requires a text editor:</p>
-
-    <ol>
-      <li>Download the <a href="https://github.com/cpitclaudel/academic-poster-template/releases/latest">latest release</a> of this template (or download the <a href="https://raw.githubusercontent.com/cpitclaudel/academic-poster-template/main/docs/tutorial/poster.html">webpage</a> and the corresponding <a href="https://raw.githubusercontent.com/cpitclaudel/academic-poster-template/main/docs/poster.css">stylesheet</a> directly from the <a href="https://github.com/cpitclaudel/academic-poster-template/tree/main/docs/tutorial/">repository</a>).</li>
-      <li>Adjust the metadata and add blocks to the <code>main</code> section.</li>
-    </ol>
-  </article>
-
-  <article>
-    <header><h3>Using Jinja2</h3></header>
-
-    <p>The poster is a Jinja2 template, so you can inherit from it and fill in the relevant fields and the contents.</p>
-
-    <ol>
-      <li>Clone the <a href="https://github.com/cpitclaudel/academic-poster-template/">GitHub repository</a>.</li>
-      <li>Install jinja2 (<code>pip install jinja2</code>)</li>
-      <li>Create your own jinja2 template, starting from <a href="https://github.com/cpitclaudel/academic-poster-template/tree/main/docs/tutorial.jinja2">this tutorial</a>.</li>
-      <li>Render to HTML using the <code>render.py</code> script:<br/>
-        <code>./render.py your_jinja2_poster.jinja output.html</code>
-      </li>
-    </ol>
-
-    <b>The template for this tutorial includes documentation for each variable and block.</b>
-  </article>
-
-  <article>
-    <header><h3>Editing the Less Stylesheet</h3></header>
-
-    <p>This poster is styled with a <a href="https://lesscss.org/">Less stylesheet</a>. Edit the stylesheet to customize colors and font sizes.</p>
-
-    <ol>
-      <li>Install lessc (<code>npm install less -g</code>)</li>
-      <li>Edit <code>poster.less</code></li>
-      <li>Run: <code>lessc poster.less docs/poster.css</code></li>
-    </ol>
-  </article>
-
-  <article>
-    <header><h3>Livereload</h3></header>
-
-    <p>To avoid manually regenerating .html/.css from .jinja2/.less on every edit, use livereload to watch for changes, regenerate files, and refresh the browser.</p>
-
-    <ol>
-      <li>Install livereload (<code>pip install livereload</code>)</li>
-      <li>Run <code>./serve.py</code>
-      <li>Browse to <code>localhost:5500/docs/tutorial/poster.html</code>
-      <li>Make changes to a .jinja2/.less file, save, and see the update in the browser</li>
-    </ol>
-  </article>
-
-  <article>
-    <header><h3>Poster layout</h3></header>
-
-    <p>Posters made using this template are composed of a sequence of blocks.  You can use CSS to customize the way the blocks are designed; by default they scroll left to right on wide screens and top to bottom on narrow screens.</p>
-
-    <b>Try resizing your browser to see how the poster's layout changes.</b>
-  </article>
-
-  <article>
-    <header><h3>Block template</h3></header>
-
-    <p>Each block has the following structure (fill in the italicized parts):</p>
-
-    <pre>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article">article</a>&gt;
-  &lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header">header</a>&gt;&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/h">h3</a>&gt;<i>Block title</i>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/h3">h3</a>&gt;&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header">header</a>&gt;
-
-  <i>Block contents:
-    paragraphs (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p">p</a>&gt;),
-    figures (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/figure">figure</a>&gt;),
-    lists (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul">ul</a>&gt;, &lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol">ol</a>&gt;),
-    images (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img">img</a>&gt;, &lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/object">object</a>&gt;),
-    tables (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table">table</a>&gt;), …</i>
-&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article">article</a>&gt;</pre>
-  </article>
-
-  <article>
-    <header><h3>Structural markup</h3></header>
-
-    <p>The following markup is useful to structure content blocks:</p>
-    <ul>
-      <li>
-        <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p">p</a>&gt;</code>
-        <p style="margin: 0">Paragraphs</p>
-        <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p">p</a>&gt;</code>
-      </li>
-
-      <li>
-        <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul">ul</a>&gt;</code>
-        <ul>
-          <li><code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li">li</a>&gt;</code>…<code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li">li</a>&gt;</code></li>
-        </ul>
-        <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul">ul</a>&gt;</code> (Plain lists)
-      </li>
-
-      <li>
-        <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol">ol</a>&gt;</code>
-        <ol>
-          <li><code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li">li</a>&gt;</code>…<code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li">li</a>&gt;</code></li>
-        </ol>
-        <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol">ol</a>&gt;</code> (Numbered lists)
-      </li>
-
-      <li>
-        <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/b">b</a>&gt;</code>
-        <b>Call-outs (<i>alerts</i>)</b>
-        <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/b">b</a>&gt;</code>
-      </li>
-    </ul>
-  </article>
-
-  <article>
-    <header><h3>Inline markup</h3></header>
-      <ul>
-        <li>
-          <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a">a</a> href="<var>url</var>"&gt;</code>
-          <a href="url">Links</a>
-          <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a">a</a>&gt;</code>
-        </li>
-
-        <li>
-          <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/em">em</a>&gt;</code>
-          <em>Emphasized text</em>
-          <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/em">em</a>&gt;</code>
-        </li>
-
-        <li>
-          <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/strong">strong</a>&gt;</code>
-          <strong>Important text</strong>
-          <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/strong">strong</a>&gt;</code>
-        </li>
-
-        <li>
-          <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/i">i</a>&gt;</code>
-          <i>Scientific terms, foreign words</i>
-          <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/i">i</a>&gt;</code>
-        </li>
-
-        <li>
-          <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/var">var</a>&gt;</code>
-          <var>Math variables, placeholders</var>
-          <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/var">var</a>&gt;</code>
-          </li>
-
-        <li>
-          <code>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code">code</a>&gt;</code>
-          <code>Inline code snippets</code>
-          <code>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code">code</a>&gt;</code>
-        </li>
-      </ul>
-
-      <b>Not sure which one to use? Check out <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/i">Mozilla's explanations</a>.  Using appropriate markup helps screen readers a lot.</b>
-  </article>
-
-  <article>
-    <header><h3>Figures</h3></header>
-
-    <p>Use the following code to insert a figure:</p>
-
-    <pre>&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/figure">figure</a>&gt;
-  <i>Figure contents:
-    images (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img">img</a>&gt;, &lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/object">object</a>&gt;),
-    tables (&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table">table</a>&gt;),
-    quotes, …</i>
-  &lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/figcaption">figcaption</a>&gt;<i>Figure caption</i>&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/figcaption">figcaption</a>&gt;
-&lt;/<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/figure">figure</a>&gt;</pre>
-
-    <hr/>
-
-    <figure>
-      <img src="https://www.w3.org/html/logo/downloads/HTML5_Logo.svg" width="197" height="64" alt="An orange shield with a white 5 emblazoned on it and the letters HTML above it.">
-
-      <figcaption>The HTML5 logo (<i>Source: <a href="https://www.w3.org/html/logo/">W3C</a></i>)</figcaption>
-    </figure>
-  </article>
-
-  <article>
-    <header><h3>Images</h3></header>
-
-    <p>Use the following code to include an image:</p>
-
-    <pre class="center-self">&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img">img</a> src="<var>source url</var>"
-     alt="<var>image description</var>"&gt;</pre>
-
-    <p>Prefer scalable images (SVG) for technical drawings and figures.</p>
-
-    <small>Most technical drawing software supports saving as SVG; if yours does not, you can typically save to PDF, which can then easily be <a href="https://superuser.com/questions/381125/how-do-i-convert-an-svg-to-a-pdf-on-linux">converted to SVG</a> (this is useful for TikZ diagrams in particular).</small>
-
-    <p>Make sure to include an <code>alt</code> attribute: it will be read by assistive technology and displayed while the image is loading.
-    </p>
-  </article>
-
-  <article>
-    <header><h3>Mathematics</h3></header>
-
-    <p>This poster template loads <a href="https://www.mathjax.org/">MathJax</a> by default, so you can include inline math in backslash-parentheses <code>\( … \)</code> and display math in backslash-brackets <code>\[ … \]</code>:</p>
-
-    <p class="center">\((\lambda x. e) v \downarrow e[x/v]\) (β-reduction)</p>
-
-    \[\frac
-      {\langle \mathtt{expr}, s\rangle \Downarrow v}
-      {\langle \mathtt{var := expr}, s\rangle \downarrow s\left[\mathtt{var} \leftarrow v\right]}
-     \small{\text{Assign}}\]
-
-    <p>Using MathJax allows users of assistive technology to browse the equations.</p>
+    <article>
+    <header><h3>Command Interpretation</h3></header>
+    <img width="80%" src="./command_interpretation.svg"/>
+    <p class="fragment center medium">The interpreter has full control of a thread. A 'thread' is just a pointer to a <code>Command</code></p>
     </article>
 
-  <article>
-    <header><h3>Highlighted Code Blocks</h3></header>
+          <article style="hyphens:none;">
+          <header><h3>Command Combinators</h3></header>
+            <p class="center medium">Commands are values → manipulated by ordinary functions</p>
+            <pre class="fragment"><code class="language-scala small">// Repeats a command n times
+def repeat(cmd: Command[_], n: Int): Command[Unit]
 
-    <p>This poster template loads <a href="https://highlightjs.org/">highlight.js</a> by default to highlight code blocks.</p>
+// Run a list of programs sequentially
+def concat[R](cmds: Seq[Command[R]]): Command[Unit]
 
-    <pre class="center-self">
-&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/pre">pre</a>&gt;&lt;<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code">code</a> class="language-python"&gt;
-  <var>code snippet</var>
-  <var>...</var>
-&lt;/code&gt;&lt;/pre&gt;</pre>
-    <pre><code class="language-python">def fibonacci(num):
-    nb1, nb2 = 0, 1
-    for nbr in range(2, num+1):
-        nb1, nb2 = nb2, nb1 + nb2
-    return nb2</code></pre>
-    <small>Copy tags <a href="https://cdnjs.com/libraries/highlight.js">from here</a> into poster.jinja2 to add support for more exotic languages or to change the highlight styling</small>
+// Run a list of programs and aggregate their results
+def sequence[R](cmds: Seq[Command[R]]): Command[Seq[R]]</pre></code>
+          </article>
+
+          <article style="hyphens:none;">
+          <header><h3>Looping Commands</h3></header>
+            <p class="center medium">Library of stack-safe functions that emulate imperative loops</p>
+            <pre class="fragment"><code class="language-scala small">// Run this program until it returns false
+def doWhile(cmd: Command[Boolean]): Command[Unit]
+
+// Step the clock until the signal == value
+def stepUntil(signal: I, value: I): Command[Unit]</pre></code>
+
+<!--// Run this program continuously
+def forever(cmd: Command[_]): Command[Nothing]</pre></code>
+def while(cond: Command[Boolean], action: Command[_]): Command[Unit]-->
+          </article>
+
+          <!--<article>
+          <header><h3>UART TX Example</h3></header>
+            <pre class="fragment"><code class="language-scala small">def sendBit(bit: Int): Command[Unit] = for {
+  _ <- poke(uartIn, bit.B)
+  _ <- step(cyclesPerBit)
+} yield ()</pre></code>
+
+            <pre class="fragment"><code class="language-scala small">def sendByte(byte: Int): Command[Unit] = for {
+  _ <- sendBit(0)
+  _ <- concat((0 until 8).map(
+    i => sendBit((byte >> i) & 0x1)))
+  _ <- sendBit(1)
+} yield ()</pre></code>
+            <p class="fragment center">For-loops → list of function invocations</p>
+            </article>-->
+
+          <article>
+          <header><h3>Ready-Valid Example</h3></header>
+          <pre class="fragment"><code class="language-scala small">def enqueue(data: T): Command[Unit] = for {
+  _ <- poke(io.bits, data)
+  _ <- poke(io.valid, true.B)
+  _ <- stepUntil(io.ready, true.B)
+  _ <- step(1)
+  _ <- poke(io.valid, false.B)
+} yield ()</pre></code>
+<pre class="fragment"><code class="language-scala small">def dequeue(): Command[T] = for {
+  _ <- waitForValue(io.valid, true.B)
+  _ <- poke(io.ready, true.B)
+  value <- peek(io.bits)
+  _ <- step(1)
+} yield value</pre></code>
+</article>
+
+          <article>
+          <header><h3>Fork/Join with Command</h3></header>
+            <!--<pre class="fragment"><code class="language-scala small" data-trim data-noescape>
+def fork[R](c: Command[R]): Command[ThreadHandle[R]]
+def join[R](c: ThreadHandle[R]): Command[R]
+            </pre></code>-->
+
+            <pre class="fragment"><code class="language-scala small">val queueTest: Command[Boolean] = for {
+    enqThread <- fork(enqueue(100.U))
+    deqThread <- fork(dequeue())
+    _         <- join(enqThread)
+    data      <- join(deqThread)
+} yield data.litValue == 100</pre></code>
+</article>
+
+<article>
+<header><h3>Scheduler Algorithm</h3></header>
+                <img src="./OSCAR_thread_figure.png" style="align-self:center;" width="80%"/>
+                <ul>
+                  <li class="fragment">On each timestep
+                    <ul class="small">
+                      <li>Run every thread until a step, join, or return</li>
+                      <li>Collect any new threads spawned</li>
+                      <li>Repeat until a fixpoint is reached</li>
+                    </ul>
+                  </li>
+                  <li class="fragment">Step the clock</li>
+                  <li class="fragment">Repeat until the main thread returns</li>
+                </ul>
+                </article>
+
+                <article>
+  <header><h3>Results</h3></header>
+            <table style="font-size: 0.7em;">
+              <thead>
+                <tr>
+                  <th style="width:35%;">Platform</th>
+                  <th colspan="2">DecoupledGCD</th>
+                  <th colspan="2">NeuromorphicProcessor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="fragment" data-fragment-index="2">
+                  <td>SystemVerilog + commercial simulator</td>
+                  <td>0.40 s</td>
+                  <td>412 kHz</td>
+                  <td>0:30 min</td>
+                  <td>1782 kHz</td>
+                </tr>
+                <tr>
+                  <td>Chiseltest with manual thread interleaving</td>
+                  <td>0.75 s</td>
+                  <td>220 kHz</td>
+                  <td>2:03 min</td>
+                  <td>432 kHz</td>
+                </tr>
+                <tr class="fragment" data-fragment-index="1">
+                  <td>Chiseltest with <strong>Command API</strong></td>
+                  <td>2.4 s</td>
+                  <td>67 kHz</td>
+                  <td>5:23 min</td>
+                  <td>165 kHz</td>
+                </tr>
+                <tr>
+                  <td>Chiseltest with fork/join threading</td>
+                  <td>21 s</td>
+                  <td>7.8 kHz</td>
+                  <td>27:21 min</td>
+                  <td>32.6 kHz</td>
+                </tr>
+                <tr>
+                  <td>cocotb</td>
+                  <td>43.2 s</td>
+                  <td>3.8 kHz</td>
+                  <td>89:38 min</td>
+                  <td>9.9 kHz</td>
+                </tr>
+              </tbody>
+              </table>
+              <p class="center">17x faster than cocotb, 5x faster than chiseltest</p>
+                </article>
+
+  <article style="hyphens:none;">
+  <header><h3>Conclusion</h3></header>
+            <p class="fragment center">Encoding simulation commands as values enables a fast runtime using only 1 thread.</p>
+            <p class="fragment center">Fastest general-purpose testbench API with simulation threading support.</p>
+            <div class="fragment">
+              <p>Coming up:</p>
+              <ul class="small">
+                <li>Channels for inter-thread communication</li>
+                <li>Better debug capabilities, thread tracing</li>
+                <li>TileLink / AXI VIPs</li>
+                <li>Performance parity with SystemVerilog</li>
+              </ul>
+            </div>
   </article>
-
-  <article>
-    <header><h3>Additional styling</h3></header>
-
-    <p>The template's stylesheet defines a few extra CSS classes:</p>
-
-    <p class="boxed center"><code>.center</code><br/>
-      (horizontally centered text)</p>
-
-    <p class="boxed justify-center"><code>.justify-center</code><br/>
-      (horizontally centered block)</p>
-
-    <div class="boxed center">
-      <div class="center columns" style="height: 3em">
-        <code style="align-self: start">.columns-top</code>
-        <code style="align-self: center">.columns-center</code>
-        <code style="align-self: end">.columns-bottom</code>
-      </div>
-      <span>(columns)</span>
-    </div>
-
-    <small>To customize column widths, use <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns"><code>grid-template-columns</code></a>; for example, for 40%/60% widths, use the following snippet:
-      <pre class="center">style="grid-template-columns: 40fr 60fr"</pre>
-    </small>
-  </article>
-
-  <figure style="flex-grow: 9999999">
+  <!--<figure style="flex-grow: 9999999">
     <img style="width: 70%" src="logo.svg" alt="Project logo" />
     <figcaption>A stand-alone figure to fill the remaining space.</figcaption>
-  </figure>
+    </figure>
+    -->
 {% endblock %}
