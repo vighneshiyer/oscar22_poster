@@ -49,6 +49,13 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 @tango-aluminum-6: #2e3436;
 
 //////////////////////
+// Berkeley Colors  //
+//////////////////////
+@cal-gold: #FDB515; // california gold
+@berkeley-blue: #003262; // berkeley blue
+@gray: #f4f4f4; // gray
+
+//////////////////////
 // Global variables //
 //////////////////////
 
@@ -68,10 +75,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 @grid-gap: 1rem;
 
-@color-title: @tango-orange-l;
+@color-title: @cal-gold; //@tango-orange-l;
 @color-accent: @tango-orange-m;
-@color-bg-light: @tango-aluminum-1;
-@color-bg-dark: @tango-aluminum-6;
+@color-bg-light: @gray; //@tango-aluminum-1;
+@color-bg-dark: @berkeley-blue; //@tango-aluminum-6;
 
 ///////////////////
 // Poster layout //
@@ -166,6 +173,54 @@ b {
     }
 }
 
+@media not print {
+    body > header {
+        img {
+            max-width: 150px;
+        }
+    }
+}
+
+@media print {
+    html {
+        zoom: 1.5;
+    }
+    body {
+        > header {
+            //grid-template-columns: auto 1fr auto;
+            grid-template-columns: 1fr auto 1fr;
+            aside:first-of-type {
+                text-align: left;
+                padding-left: @grid-gap;
+            }
+            aside:last-of-type {
+                text-align: right;
+                padding-right: @grid-gap;
+                grid-template-columns: auto auto;
+                justify-content: end;
+            }
+            h1 {
+                font-size: 2.5rem !important;
+            }
+
+            address {
+                font-size: 1.5rem !important;
+            }
+        }
+        > footer {
+            grid-template-columns: 1fr 1fr 1fr;
+            > :first-child {
+                text-align: left;
+                padding-left: @grid-gap;
+            }
+            > :last-child {
+                text-align: right;
+                padding-right: @grid-gap;
+            }
+        }
+    }
+}
+
 html, body {
     height: 100%;
     width: 100%;
@@ -187,9 +242,13 @@ body {
         text-align: center;
     }
 
+    > footer {
+        border-top: 0.25rem solid @berkeley-blue;
+    }
+
     > header {
         font-size: 80%;
-        border-bottom: 5px solid;
+        border-bottom: 0.25rem solid @berkeley-blue;
 
         img {
             max-height: @header-img-height;
@@ -216,6 +275,15 @@ body {
 
         time {
             margin-top: @thin-space;
+        }
+
+        aside:last-of-type {
+            display:grid;
+            grid-template-columns: auto auto;
+            a {
+                display: grid;
+                align-content: center;
+            }
         }
     }
 }
@@ -265,7 +333,7 @@ article {
     background: @color-bg-light;
     display: flex;
     flex-direction: column;
-    hyphens: auto;
+    hyphens: none;
     line-height: 1.35;
     padding: 0 @mid-space @mid-space @mid-space;
     // text-align: justify;

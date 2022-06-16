@@ -45,12 +45,13 @@
 {# Project logos shown on the left side #}
 {% block project_logos %}
   <!--<a href="{{ project_url }}"><img src="logo.svg" alt="Tutorial logo"></a>-->
-  <a href="{{ project_url }}"><img width="200px" src="chisel_logo.svg" alt="Chisel - chiseltest"></a>
+  <a href="{{ project_url }}"><img src="chisel_logo.svg" alt="Chisel - chiseltest"></a>
 {% endblock %}
 
 {# Extra logos shown on the right side #}
 {% block logos %}
-  <a href="https://csail.mit.edu"><img style="background: white" src="csail.png" alt="MIT CSAIL Logo"></a>
+  <a style="padding-right:1rem;" href="https://slice.eecs.berkeley.edu"><img style="background: white" src="slice_logo.png" alt="Berkeley SLICE Lab Logo"></a>
+  <a href="https://berkeley.edu"><img style="background: white" src="berkeley_logo.svg" alt="University of California, Berkeley"></a>
 {% endblock %}
 
 {### Footer ##}
@@ -73,7 +74,7 @@
   <article style="hyphens:none;">
     {# Using <h3> inside the <header> makes the structure evident to screen readers #}
     <header><h3>Testbench APIs</h3></header>
-    <p class="center">Testbench APIs provide an interface between <i>testbench logic</i> and a <i>simulator backend</i></p>
+    <p class="center">Testbench APIs provide an interface between <i>testbench logic</i> and a <i>simulator backend</i>.</p>
 
     <p><strong>Simulator backends</strong>: Verilator, Icarus, VCS</p>
 
@@ -202,8 +203,6 @@ b.join</code></pre>
   </div>
   </article>
 
-
-
     <article>
     <header><h3>Motivation: Overhead of Fork/Join</h3></header>
     <table class="small fragment" style="caption-side: bottom;">
@@ -242,7 +241,7 @@ b.join</code></pre>
     </tbody>
     </table>
 
-    <p class="center">We want to design an open-source, <strong>high-performance</strong>, general-purpose testbench API with fork/join support</p>
+    <p class="center">We want to design an open-source, <strong>high-performance</strong>, general-purpose testbench API with fork/join support.</p>
     <!-- The overhead of simulation threads in chiseltest is too high.</p> -->
     </article>
 
@@ -250,10 +249,10 @@ b.join</code></pre>
     <header><h3>Sources of Perf Overhead <span class="small">in chiseltest</span></h3></header>
   <ul>
     <li class="fragment">Fork-ing spawns a <em>new</em> JVM thread</li>
-    <li class="fragment">On every timestep, the chiseltest scheduler runs each thread, one at a time. Each thread can:
+    <!--<li class="fragment">On every timestep, the chiseltest scheduler runs each thread, one at a time. Each thread can:
     <ul class="small">
       <li>Terminate, peek / poke, fork new threads, yield (step or join)</li>
-    </ul></li>
+      </ul></li>-->
     <li class="fragment">Parking and unparking threads is <strong>slow</strong></li>
     </ul>
     </article>
@@ -265,7 +264,7 @@ b.join</code></pre>
 case class Peek(signal: I) extends Command[I]
 case class Poke(signal: I, value: I) extends Command[Unit]
 case class Step(cycles: Int) extends Command[Unit]</pre></code>
-  <p class="center">Instances of these classes only <em>describe</em> the actions of peeking, poking, or stepping</p>
+  <p class="center">Instances of these classes only <em>describe</em> the actions of peeking, poking, or stepping.</p>
   <!--<ul class="fragment">-->
   <!--<li>Instantiating these classes doesn’t <em>do anything</em></li>-->
   <!--<li>They only <em>describe</em> the actions of peeking, poking, or stepping</li>-->
@@ -275,7 +274,7 @@ case class Step(cycles: Int) extends Command[Unit]</pre></code>
 
   <article>
   <header><h3>Command Continuations</h3></header>
-  <p class="center"><code>flatMap</code> describes 'unwrapping' the return value of a <code>Command</code>, and continuing with another function<//p>
+  <p class="center"><code>flatMap</code> 'unwraps' the return value of a <code>Command</code>, and continues with another function.<//p>
 <!--<pre class="fragment"><code class="language-scala small">case class Return[R](retval: R) extends Command[R]
 case class Cont[R1, R2](c: Command[R1],
   then: R1 => Command[R2]) extends Command[R2]</pre></code>
@@ -287,20 +286,28 @@ case class Cont[R1, R2](c: Command[R1],
   }
   </pre></code>-->
 
+<pre class="fragment"><code class="language-scala medium">val program: Command[Boolean] = for {
+    _ <- Poke(dut.enq.valid, 1.B)
+    _ <- Step(1)
+    p <- Peek(dut.deq.valid)
+} yield p.litValue == 1</pre></code>
+
+<p class="center">Scala for-comprehensions desugar to nested <code>flatMap</code>s. <code>program</code> is a <em>value</em>, but <em>looks</em> like imperative code.</p>
+
   <!--<p class="center fragment">We can describe executing a command after another</p>-->
 
-  <pre class="fragment"><code class="language-scala small">val program: Command[Boolean] =
+  <!--<pre class="fragment"><code class="language-scala small">val program: Command[Boolean] =
   Poke(dut.enq.valid, 1.B).flatMap {
     _ => Step(1).flatMap {
       _ => Peek(dut.deq.valid).map {
         p => p.litValue == 1
       }
     }
-  }</pre></code>
+    }</pre></code>-->
   <img class="fragment" src="./command_sequencing.svg"/>
   </article>
 
-  <article style="hyphens:none;">
+  <article style="hyphens:none; display: none;">
     <header><h3>For-Comprehension Sugar</h3></header>
 <pre class="fragment"><code class="language-scala small">val program: Command[Boolean] = for {
     _ <- Poke(dut.enq.valid, 1.B)
@@ -309,8 +316,8 @@ case class Cont[R1, R2](c: Command[R1],
 } yield p.litValue == 1</pre></code>
 <p class="fragment center"><code>program</code> is just a value, but <em>looks</em> like imperative code</p>
   </article>
-<!--
-  <article>
+
+  <article style="display:none;">
     <header><h3>Imperative vs Functional Testbench</h3></header>
     <div class="container">
     <div class="col">
@@ -330,42 +337,30 @@ dut.poke()</code></pre>
       </div>
     </div>
     </article>
-    -->
 
-    <article>
-    <header><h3>Command Interpretation</h3></header>
-    <img width="80%" src="./command_interpretation.svg"/>
-    <p class="fragment center medium">The interpreter has full control of a thread. A 'thread' is just a pointer to a <code>Command</code></p>
-    </article>
-
-          <article style="hyphens:none;">
+<!--    // Repeats a command n times
+def repeat(cmd: Command[_], n: Int): Command[Unit] -->
+<!--// Run this program continuously
+def forever(cmd: Command[_]): Command[Nothing]</pre></code>
+def while(cond: Command[Boolean], action: Command[_]): Command[Unit]-->
+    <article style="hyphens:none;">
           <header><h3>Command Combinators</h3></header>
-            <p class="center medium">Commands are values → manipulated by ordinary functions</p>
-            <pre class="fragment"><code class="language-scala small">// Repeats a command n times
-def repeat(cmd: Command[_], n: Int): Command[Unit]
-
-// Run a list of programs sequentially
+            <p class="center medium">Commands are values → can be manipulated by ordinary functions</p>
+            <pre class="fragment"><code class="language-scala small">// Run a list of programs sequentially
 def concat[R](cmds: Seq[Command[R]]): Command[Unit]
 
 // Run a list of programs and aggregate their results
 def sequence[R](cmds: Seq[Command[R]]): Command[Seq[R]]</pre></code>
-          </article>
 
-          <article style="hyphens:none;">
-          <header><h3>Looping Commands</h3></header>
             <p class="center medium">Library of stack-safe functions that emulate imperative loops</p>
             <pre class="fragment"><code class="language-scala small">// Run this program until it returns false
 def doWhile(cmd: Command[Boolean]): Command[Unit]
 
 // Step the clock until the signal == value
 def stepUntil(signal: I, value: I): Command[Unit]</pre></code>
-
-<!--// Run this program continuously
-def forever(cmd: Command[_]): Command[Nothing]</pre></code>
-def while(cond: Command[Boolean], action: Command[_]): Command[Unit]-->
           </article>
 
-          <!--<article>
+    <!--<article>
           <header><h3>UART TX Example</h3></header>
             <pre class="fragment"><code class="language-scala small">def sendBit(bit: Int): Command[Unit] = for {
   _ <- poke(uartIn, bit.B)
@@ -383,15 +378,15 @@ def while(cond: Command[Boolean], action: Command[_]): Command[Unit]-->
 
           <article>
           <header><h3>Ready-Valid Example</h3></header>
-          <pre class="fragment"><code class="language-scala small">def enqueue(data: T): Command[Unit] = for {
+          <pre class="fragment"><code class="language-scala medium">def enqueue(data: T): Command[Unit] = for {
   _ <- poke(io.bits, data)
   _ <- poke(io.valid, true.B)
   _ <- stepUntil(io.ready, true.B)
   _ <- step(1)
   _ <- poke(io.valid, false.B)
 } yield ()</pre></code>
-<pre class="fragment"><code class="language-scala small">def dequeue(): Command[T] = for {
-  _ <- waitForValue(io.valid, true.B)
+<pre class="fragment"><code class="language-scala medium">def dequeue(): Command[T] = for {
+  _ <- stepUntil(io.valid, true.B)
   _ <- poke(io.ready, true.B)
   value <- peek(io.bits)
   _ <- step(1)
@@ -399,22 +394,29 @@ def while(cond: Command[Boolean], action: Command[_]): Command[Unit]-->
 </article>
 
           <article>
-          <header><h3>Fork/Join with Command</h3></header>
+          <header><h3>Fork/Join Example</h3></header>
             <!--<pre class="fragment"><code class="language-scala small" data-trim data-noescape>
 def fork[R](c: Command[R]): Command[ThreadHandle[R]]
 def join[R](c: ThreadHandle[R]): Command[R]
             </pre></code>-->
 
-            <pre class="fragment"><code class="language-scala small">val queueTest: Command[Boolean] = for {
+            <pre class="fragment"><code class="language-scala medium">val queueTest: Command[Boolean] = for {
     enqThread <- fork(enqueue(100.U))
     deqThread <- fork(dequeue())
     _         <- join(enqThread)
     data      <- join(deqThread)
-} yield data.litValue == 100</pre></code>
+} yield data.litValue == 100
+
+test(new Queue(UInt(32.W))) { dut =>
+  val itWorks: Boolean = run(queueTest)
+  assert(itWorks)
+}</pre></code>
 </article>
 
 <article>
-<header><h3>Scheduler Algorithm</h3></header>
+<header><h3>Interpreter / Scheduler Algorithm</h3></header>
+    <img width="80%" src="./command_interpretation.svg"/>
+    <p class="fragment center medium">The interpreter has full control of a thread (a pointer to a <code>Command</code>).</p>
                 <img src="./OSCAR_thread_figure.png" style="align-self:center;" width="80%"/>
                 <ul>
                   <li class="fragment">On each timestep
@@ -431,7 +433,7 @@ def join[R](c: ThreadHandle[R]): Command[R]
 
                 <article>
   <header><h3>Results</h3></header>
-            <table style="font-size: 0.7em;">
+            <table style="font-size: 0.75em;">
               <thead>
                 <tr>
                   <th style="width:35%;">Platform</th>
@@ -455,11 +457,11 @@ def join[R](c: ThreadHandle[R]): Command[R]
                   <td>432 kHz</td>
                 </tr>
                 <tr class="fragment" data-fragment-index="1">
-                  <td>Chiseltest with <strong>Command API</strong></td>
-                  <td>2.4 s</td>
-                  <td>67 kHz</td>
-                  <td>5:23 min</td>
-                  <td>165 kHz</td>
+                  <td><strong>Chiseltest with SimCommand</strong></td>
+                  <td><strong>2.4 s</strong></td>
+                  <td><strong>67 kHz</strong></td>
+                  <td><strong>5:23 min</strong></td>
+                  <td><strong>165 kHz</strong></td>
                 </tr>
                 <tr>
                   <td>Chiseltest with fork/join threading</td>
@@ -477,16 +479,19 @@ def join[R](c: ThreadHandle[R]): Command[R]
                 </tr>
               </tbody>
               </table>
-              <p class="center">17x faster than cocotb, 5x faster than chiseltest</p>
+              <p class="center"><strong>17x</strong> faster than cocotb, <strong>5x</strong> faster than chiseltest</p>
                 </article>
 
   <article style="hyphens:none;">
   <header><h3>Conclusion</h3></header>
+  <p class="center">Encoding simulation commands as values and using a single-threaded user-level scheduler enables the <strong>fastest general-purpose testbench API with fork/join support</strong>.</p>
+  <!--Using Command descriptions and the user-level scheduler, this is the fastest ...
             <p class="fragment center">Encoding simulation commands as values enables a fast runtime using only 1 thread.</p>
-            <p class="fragment center">Fastest general-purpose testbench API with simulation threading support.</p>
+            <p class="fragment center">Fastest general-purpose testbench API with simulation threading support.</p>-->
             <div class="fragment">
-              <p>Coming up:</p>
-              <ul class="small">
+              <p style="padding-bottom:0.25rem;">Coming up:</p>
+
+              <ul>
                 <li>Channels for inter-thread communication</li>
                 <li>Better debug capabilities, thread tracing</li>
                 <li>TileLink / AXI VIPs</li>
