@@ -63,7 +63,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 @columns: 4;
 @column-min-width: 22.5rem;
-@column-max-width: 30rem;
+@column-max-width: 35rem;
 
 @thin-space: 0.25rem;
 @mid-space: 0.5rem;
@@ -176,39 +176,73 @@ b {
 @media not print {
     body > header {
         img {
-            max-width: 150px;
+            max-width: 200px;
         }
     }
 }
 
 @media print {
     html {
-        zoom: 1.5;
+        //zoom: 1.5;
     }
     body {
         > header {
             //grid-template-columns: auto 1fr auto;
-            grid-template-columns: 1fr auto 1fr;
-            aside:first-of-type {
-                text-align: left;
-                padding-left: @grid-gap;
-            }
-            aside:last-of-type {
-                text-align: right;
-                padding-right: @grid-gap;
-                grid-template-columns: auto auto;
-                justify-content: end;
+            //grid-template-columns: 1fr auto 1fr;
+            //aside:first-of-type {
+                //text-align: left;
+                //padding-left: @grid-gap;
+            //}
+            padding-right: 1.5rem !important;
+            padding-left: 1.5rem !important;
+            padding-top: 1.5rem !important;
+            grid-template-columns: 0.18fr 0.82fr;
+            // aside:last-of-type {
+            //     text-align: right;
+            //     padding-right: @grid-gap;
+            //     grid-template-columns: auto auto;
+            //     justify-content: end;
+            // }
+            img {
+                max-width:80%;
             }
             h1 {
                 font-size: 2.5rem !important;
+                margin-bottom: -2rem; // grid hack
             }
-
             address {
                 font-size: 1.5rem !important;
             }
+
+            aside:first-of-type {
+                height: 150px !important;
+                box-shadow: 10px 10px 0px 0px rgba(0, 0, 0, 0.16) !important;
+                margin-right: 20px !important;
+            }
+            div {
+                height: 150px !important;
+                box-shadow: 10px 10px 0px 0px rgba(0, 0, 0, 0.16) !important;
+            }
+
+        }
+        > main {
+            border: 5px solid #a6a6a6;
+            margin-top: 1rem;
+            margin-left: 1.5rem;
+            margin-right: 1.5rem;
+            // > * {
+            //     flex-grow: 1;
+            //     margin: (@grid-gap / 2);
+            //     max-width: 50rem;
+            //     min-width: @column-min-width;
+            //     width: calc(100% / @columns - @grid-gap);
+            // }
         }
         > footer {
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr;
+            border-top: none !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
             > :first-child {
                 text-align: left;
                 padding-left: @grid-gap;
@@ -244,14 +278,40 @@ body {
 
     > footer {
         border-top: 0.25rem solid @berkeley-blue;
+
+        > address:first-of-type {
+            color: #7f7f7f;
+        }
     }
 
     > header {
         font-size: 80%;
-        border-bottom: 0.25rem solid @berkeley-blue;
+        //border-bottom: 0.25rem solid @berkeley-blue;
+        grid-gap: 0;
+        padding: 0;
+
+        aside:first-of-type {
+            background: @cal-gold;
+            color: white;
+            height: 97px;
+            box-shadow: 7px 7px 0px 0px rgba(0,0,0,0.16);
+            margin-right: 10px;
+            display: grid;
+            align-items: center;
+            min-width: 11rem;
+        }
+
+        div {
+            background: @berkeley-blue;
+            color: white;
+            height: 97px;
+            box-shadow: 7px 7px 0px 0px rgba(0,0,0,0.16);
+            display: grid;
+            align-items: center;
+        }
 
         img {
-            max-height: @header-img-height;
+            //max-height: @header-img-height;
         }
 
         h1 {
@@ -277,14 +337,14 @@ body {
             margin-top: @thin-space;
         }
 
-        aside:last-of-type {
-            display:grid;
-            grid-template-columns: auto auto;
-            a {
-                display: grid;
-                align-content: center;
-            }
-        }
+        // aside:last-of-type {
+        //     display:grid;
+        //     grid-template-columns: auto auto;
+        //     a {
+        //         display: grid;
+        //         align-content: center;
+        //     }
+        // }
     }
 }
 

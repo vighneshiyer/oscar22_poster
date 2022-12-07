@@ -68,11 +68,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
           {% endblock %}
         </span>
       </div>
-      <aside>
-        {% block logos %}
-          <a href="https://example.com"><img src="institution-logo.png" alt="Institution logo"></a>
-        {% endblock %}
-      </aside>
+      <!--<aside>-->
+        {# block logos #}
+        <!--<a href="https://example.com"><img src="institution-logo.png" alt="Institution logo"></a>-->
+        {# endblock #}
+        <!--</aside>-->
     </header>
 
     <main property="articleBody">
@@ -82,14 +82,14 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
     </main>
 
     <footer>
-      <address class="monospace">
+      <address>
         {%- block project_link -%}
           <a href="{{ project_url }}">{{ project_url }}</a>
         {%- endblock -%}
       </address>
-      <address class="monospace">
-        {%- block contact_information -%}{%- endblock -%}
-      </address>
+      <!--<address class="monospace">-->
+      {# {%- block contact_information -%}{%- endblock -%} #}
+        <!--</address>-->
       {# Feel free to remove the block below, but keep the comment in <head> #}
       {% block credits %}
         <span class="credits">

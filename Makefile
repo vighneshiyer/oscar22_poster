@@ -1,4 +1,4 @@
-all: docs/tutorial/poster.html docs/koika/poster.html docs/simcommand/poster.html docs/poster.css
+all: docs/tutorial/poster.html docs/koika/poster.html docs/simcommand/poster.html docs/poster.css docs/simcommand_bwrc/poster.html
 
 docs/poster.css: poster.less
 	lessc --strict-units=on $< $@
