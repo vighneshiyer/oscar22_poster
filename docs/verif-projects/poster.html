@@ -89,8 +89,8 @@
 
 <pre class="fragment"><code class="language-scala medium">ch <- makeChannel[Integer](size=10)
 _ <- put(ch, 1)
-_ <- step(1)
-v <- getBlocking(ch)
+t <- fork( for { v <- getBlocking(ch) } yield v )
+v <- join(t)
 </pre></code>
 </article>
 
@@ -104,191 +104,78 @@ v <- getBlocking(ch)
 <article style="hyphens:none;">
 <header><h3>SimCommand Tail Recursion Primitive</h3></header>
 <ul>
-<li>Naive monadic recursion can blow up the stack → 
+<li>Naive monadic recursion can blow up the stack</li>
+<li>One solution is <em>trampolining</em> where the stack is dumped to the heap on every recursive call.</li>
 </ul>
 
-<pre class="fragment"><code class="language-scala medium">
-  final def tailRecM[R, R2](r: R)(f: R => Command[Either[R, R2]]): Command[R2] = {
-    Rec(r, f)
-    // f(r).flatMap {
-    //   case Left(value) => tailRecM(value)(f) // recursion here is lazy so the stack won't blow up
-    //   case Right(value) => lift(value)
-    // }
+<pre class="fragment"><code class="language-scala small">def tailRecM[R, R2](r: R)
+  (f: R => Command[Either[R, R2]]): Command[R2] = {
+  f(r).flatMap {
+    case Left(value) => tailRecM(value)(f)
+    case Right(value) => lift(value)
   }
-</pre></code>
+}</pre></code>
 
+<p class="center">However, trampolining is slow. A recursion <em>primitive</em> that elides trampolining demonstrates <strong>400% performance improvement</strong>.</p>
 </article>
 
 <article style="hyphens:none;">
   <header><h3>Chiseltest ⬌ RTL Simulator FFI</h3></header>
+  <img width="80%" src="./command_interpretation.svg"/>
+
+  <ul>
+  <li>The foreign function interface (FFI) linking chiseltest on the JVM and the RTL simulation (Verilator) in C++ is a bottleneck</li>
+  <li>Using JNI vs JNA as the FFI API <strong>improves performance by up to 10x</strong> - WIP: integration into chiseltest</li>
+  </ul>
+  </article>
+
+<article style="hyphens:none;">
+  <header><h3>Lightweight "HLS" Recipes for Chisel</h3></header>
+  <ul>
+  <li>Writing FSMs manually in RTL is error prone and obscures control flow intent</li>
+  <li>WIP: a mini-DSL to describe imperative control flow that compiles to Chisel, inspired by Recipes in Blarney HDL</li>
+  </ul>
+  <pre class="fragment"><code class="language-scala small">axi.ar_ready := 1.B
+axi.r_valid := 0.B
+val readOnce = Sequential {
+  WaitUntil(axi.ar_valid === 1.B)
+  Action {
+    axi.r_data := mem.read(axi.ar_addr)
+    axi.r_valid := 1.B
+  }
+  WaitUntil(axi.r_ready === 1.B)
+  Tick()
+}
+Forever(readOnce).compile()</pre></code>
 </article>
 
-
-  <article style="hyphens:none;">
-  <header><h3>Hardware Design Languages (HDL)</h3></header>
+<article style="hyphens:none;">
+  <header><h3>"SVA" for Chisel</h3></header>
   <ul>
-  <li>HDLs can describe digital circuits at different abstraction levels (algorithm, dataflow, RTL, gate-level)</li>
-  <li>Most popular RTL-level HDL is Verilog</li>
+  <li>Sequence library to describe temporal properties in Chisel</li>
+  <li>Supports a subset of linear PSL (sequence combinators + bounded delays + LTL operators)</li>
+  <li>2 backends: naive monitor automata synthesis, SPOT-driven optimized automata synthesis</li>
   </ul>
-<pre><code class="language-verilog medium">module alu(input [7:0] a, b,
-           input op, clk, output [8:0] o);
-  always_ff @(clk)
-    if (op) o <= a + b;
-    else o <= a - b;
-endmodule</code></pre>
+  <pre class="fragment"><code class="language-scala medium">class Example extends Module {
+  val a, b = Reg(Bool())
+  val c = Reg(UInt(8.W))
+  assert(a |=> b)
+  assert(a ###1 b |=> (c > 15.U))
+}</pre></code>
+
+  <strong>TODO: add picture of automata + PSL representation</strong>
+  <strong>TODO: add link to github repo</strong>
   </article>
 
-  <article style="hyphens:none;">
-  <header><h3>Dynamic RTL Simulation</h3></header>
+<!--<article style="hyphens:none;">
+  <header><h3>FIRRTL → Graph for Netlist Embedding</h3></header>
   <ul>
-  <li>RTL simulators implement a function \( s \) to simulate the underlying transition system</li>
-  <li>\( s(T, PI_{0}, \dots, PI_{n}) = (PO_{0}, \dots, PO_{n}) \)</li>
-  <li>Given a sequence of inputs, return the sequence of outputs</li>
+  <li></li>
   </ul>
-  </article>
+</article>-->
 
-
-  <article style="hyphens:none;">
-  <header><h3>Dynamic Verification</h3></header>
-  <div class="container">
-  <div class="col" style="display:grid;">
-  <img src="dynamic_verif.svg" />
-  </div>
-  <div class="col">
-  <ul>
-  <li>Unlike software, there aren't <em>universal</em> hardware bugs (e.g. segfault, stack overflow)</li>
-  <li>Bugs are detected by RTL assertions and the verification environment</li>
-  <li>For CPUs, bugs are detected by comparing instruction commit logs between RTL simulation and an ISA simulator</li>
-  </ul>
-  </div>
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Stimulus Generators</h3></header>
-  <img src="stimgen.svg" />
-  <ul>
-  <li>Hardware stimulus generators use declarative constraints and ultimately produce stimulus that desugars to a sequence of inputs</li>
-  </ul>
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Verification Loop</h3></header>
-  <img src="typical_verif_flow.svg" />
-  <!--How do we typically use stim gen + dynamic RTL simulation to verify our RTL?-->
-  <!--Coverage driven feedback (manual) and coverage closure.-->
-  <!--Going beyond closure to special case consideration (signals toggling together - other types of 'unachievable' coverage metrics to maximally exercise RTL-->
-  <ul>
-    <li>RTL simulation is slow, so can we use automated or semi-automated techniques to hit desired coverpoints?</li>
-  </ul>
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Coverage Proxy Models</h3></header>
-  <!--Compare RTL stimgen feedback via blackbox / bayesian models to typical software fuzzing-->
-  <!--Talk about the issue in doing this (very slow RTL simulation) - can't just tweak gen params and rerun simulation - too many iteration cycles required.-->
-  <!--+ hardware fuzzing is inherently stateful-->
-  <ul>
-    <li>Can we predict RTL-level coverage from pre-RTL-simulation data?</li>
-    </ul>
-    <img src="cov_proxy_model_usage.svg" />
-  </article>
-
-  <!--
-  <article style="hyphens:none;">
-  <header><h3>Coverage Proxy Models</h3></header>
-  Talk about what these are. What are we predicting from what features?
-  </article>
-  -->
-
-  <article style="hyphens:none;">
-  <header><h3>Experimental Setup</h3></header>
-  <ul>
-  <li>riscv-dv (Google's UVM-based RISC-V program generator) - 23 knobs (4 integer, 19 boolean)</li>
-  <li>Rocket-chip RV32IMC core</li>
-  <li>Verilator RTL simulator with line coverage collection harness</li>
-  <li>100 tests, 5 seed iterations per test</li>
-  </ul>
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Exploring Coverage Correlations</h3></header>
-  <img src="cov_heatmap.png" />
-  <ul>
-  <li>Heatmap of coverpoints hit at least once (x-axis) vs test configuration (y-axis)</li>
-  <li><strong>Observations</strong>: line coverpoints are highly correlated, certain points require specific knob settings and lucky seeds, only 10 dominant singular values</li>
-  </ul>
-  <!--<img src="svd.png" width="50%"/>-->
-  <!--Very quick SVD plot of the coverage matrix-->
-  <!--Very quick heatmap of coverpoints and frequency they are hit at with different test configs-->
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Proxy Model Weight Analysis</h3></header>
-  <ul>
-    <li>Classical models are more interpretable vs DNNs - more useful for DV engineers</li>
-    <li>Idx 10 (AXI4 to MMIO) - correlated with <code>enable_misaligned_instr</code> and inversely with <code>illegal_instr_ratio</code></li>
-    <li>Idx 401 (ALU divider) - correlated with <code>no_branch_jump</code> and inversely with <code>set_mstatus_mprv</code></li>
-  </ul>
-  <!--Nice thing about linear / boosted tree models is ability to analyze what makes a coverpoint be hit-->
-  <!--Can we say anything about the combination of various knobs wrt what they cause downstream in the RTL?-->
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Blackbox Coverage Prediction</h3></header>
-  <ul>
-    <li>Avg absolute error of 0.0004 hits/cycle for ridge regressor. Not bad, but a few outliers.</li>
-  </ul>
-  <img src="error_vs_seen_freq.png" />
-  <ul>
-  <li>Unexpected trajectory of coverpoint prediction error as a function of frequency that a coverpoint is seen in training</li>
-  </ul>
-  <!--Results from a linear regressor - raw numbers-->
-  <!--Plot of how coverage prediction accuracy varies as a function of frequency of coverpoint hits seen in the training set-->
-  </article>
-
-
-  <article style="hyphens:none;">
-  <header><h3>Stimulus-Level Functional Coverage as an Input Feature</h3></header>
-  <img src="variance.png" />
-  <ul>
-    <li>Plotted is the variance for a given coverpoint across different seeds of a fixed config</li>
-    <li><strong>Observation:</strong> There is a large amount (10-25%) of variance of coverpoint hitting frequency across seeds, this motivates usage of stimulus-specific features</li>
-  </ul>
-  <!--We also capture the coverage database of riscv-dv itself when run - this is a stronger indicator of what the stimulus actually contains-->
-  <!--Can we use these features to improve model accuracy?-->
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Notes on riscv-dv</h3></header>
-  <ul>
-  <li>It is easy to increase <code>num_sub_tests</code> or <code>instr_cnt</code> to make it more likely a coverpoint will be hit. In this work we normalize across cycles (unlike design2vec)</li>
-  <li>Each test has very few distinguishing characteristics - coverage across different configs is nearly identical</li>
-  <li>Knobs provide very little control, beyond coincidental control, of stimulus that is produced</li>
-  </ul>
-  <!--
-  riscv-dv
-  just increase num_tests or num_sub_tests or instr_cnt = this is just hacking the system!
-  no normalization for test duration (number of cycles simulation took)!
-  results seem bogus - parameters that shoulnd't have influence actually end up having!?
-  relationship between knobs and coverpoints is completely fuzzy! although relationships between coverpoints are captured
-  they only consider 10-90% covered points - on a very simple 3 stage RISC-V CPU (no virtual memory, no FPU, no caches)
-  - this means the less than 10% covered points can't be predicted!
-  no controllability from the knobs alone - they are very coarse grained
-  functional coverage is much better of a feature, but then we need an extra model to train - which is doable however
-  after randomization, functions inside each class are called again to mutate the final state of the class - this is just a mess of code with mutable state everywhere - impossible to track information flow and thus randomization hierarchy
-
-  coverage analysis shows that the tests have very few distinguishing characteristics - the coverage they achieve across iterations and different seeds is almost identical
-  -->
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Towards Coverpoint Extrapolation</h3></header>
-  <img src="cov_extrapolation.svg" />
-  <p class="center">WIP: <a href="https://github.com/vighneshiyer/rtl2graph">github.com/vighneshiyer/rtl2graph</a>. A common graph representation compiler for FIRRTL.</p>
-  </article>
-
-  <article style="hyphens:none;">
-  <header><h3>Parametric RISC-V CPU Fuzzing</h3></header>
+<article style="hyphens:none;">
+  <header><h3>Generative Parametric Random Stimulus API</h3></header>
   <p class="center">WIP: <a href="https://github.com/girantinas/randomapi">github.com/girantinas/randomapi</a>. A parameteric hardware stimgen API written in Scala.</p>
   <pre><code class="language-scala medium">enum Operator: case Add, Sub, Mul, Div
 
