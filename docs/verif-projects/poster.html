@@ -14,8 +14,10 @@
       <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css" integrity="sha512-hasIneQUHlh06VNBe7f6ZcHmeRTLIaQWFd43YriJ0UND19bvYRauxthDg8E4eVNPm9bRUhr5JGeqH7FRFXQu5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />-->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/mono-blue.min.css" integrity="sha512-9MaxPqXjPueWIGbV9cvVzkGnBxywb1kSNUtjm5Ttnk0ltKD23voJdHxAh6y9k10CwWwrFiFn49FG88KZuFzbTg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
       <script defer>hljs.highlightAll();</script>
-              <link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&amp;family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet">
-        <style type="text/css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Fira+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet"> 
+    <style type="text/css">
     html { font-size: 1.15rem }
     .container{
       display: grid;
@@ -25,6 +27,9 @@
     th {
       border-bottom: 1px solid;
     }
+pre, code, samp, .monospace {
+    font-family: "Fira Code", monospace;
+}
 </style>
   </head>
 
@@ -38,7 +43,7 @@
       <div>
         <h1 property="headline">Improving Verification Infrastructure for Chisel RTL</h1>
                 <address>
-              <a property="author" style="font-size:90%;">Vighnesh Iyer, Kevin Laeufer, Rohit Agarwal, Young-Jin Park, Andy Yin, Oliver Yu, Bryan Ngo, Shawn Kong, Grace Chen, Yi Mu, Sungwoong Ha, Bora Nikolic</a>
+              <a property="author">Vighnesh Iyer, Kevin Laeufer, Rohit Agarwal, Young-Jin Park, Andy Yin, Oliver Yu, Bryan Ngo, Shawn Kong, Grace Chen, Yi Mu, Sungwoong Ha, Bora Nikolic</a>
 <br />  <a property="sourceOrganization">UC Berkeley</a>
         </address>
         <span class="publication-info">
@@ -81,15 +86,17 @@
 } yield p.litValue == 1</pre></code>
 
 <img class="fragment" src="./command_sequencing.svg"/>
+
+<p class="center">SimCommand is <strong>already 5-8x faster</strong> than chiseltest's built-in fork/join threading</p>
 </article>
 
 <article style="hyphens:none;">
 <header><h3>SimCommand Channels</h3></header>
 <p class="center">Channels enable deterministic thread-to-thread communication, similar to SystemVerilog mailboxes or golang channels.</p>
 
-<pre class="fragment"><code class="language-scala medium">ch <- makeChannel[Integer](size=10)
+<pre class="fragment"><code class="language-scala small">ch <- makeChannel[Integer](size=10)
 _ <- put(ch, 1)
-t <- fork( for { v <- getBlocking(ch) } yield v )
+t <- fork(for { v <- getBlocking(ch) } yield v)
 v <- join(t)
 </pre></code>
 </article>
@@ -108,9 +115,9 @@ v <- join(t)
 <li>One solution is <em>trampolining</em> where the stack is dumped to the heap on every recursive call.</li>
 </ul>
 
-<pre class="fragment"><code class="language-scala small">def tailRecM[R, R2](r: R)
-  (f: R => Command[Either[R, R2]]): Command[R2] = {
-  f(r).flatMap {
+<pre class="fragment"><code class="language-scala small">def tailRecM[S, R](s: S)
+  (f: S => Command[Either[S, R]]): Command[R] = {
+  f(s).flatMap {
     case Left(value) => tailRecM(value)(f)
     case Right(value) => lift(value)
   }
@@ -156,15 +163,21 @@ Forever(readOnce).compile()</pre></code>
   <li>Supports a subset of linear PSL (sequence combinators + bounded delays + LTL operators)</li>
   <li>2 backends: naive monitor automata synthesis, SPOT-driven optimized automata synthesis</li>
   </ul>
-  <pre class="fragment"><code class="language-scala medium">class Example extends Module {
+  <!--<div class="container">
+  <div class="col">-->
+  <pre class="fragment"><code class="language-scala small">class Example extends Module {
   val a, b = Reg(Bool())
   val c = Reg(UInt(8.W))
   assert(a |=> b)
   assert(a ###1 b |=> (c > 15.U))
 }</pre></code>
-
-  <strong>TODO: add picture of automata + PSL representation</strong>
-  <strong>TODO: add link to github repo</strong>
+<!--</div>
+<div class="col" style="display:grid;">
+-->
+  <img src="psl_spot.svg" />
+<!--</div>
+</div>-->
+<p class="small center"><a href="https://github.com/ekiwi/chisel-sequences">github.com/ekiwi/chisel-sequences</a></p>
   </article>
 
 <!--<article style="hyphens:none;">
@@ -175,9 +188,36 @@ Forever(readOnce).compile()</pre></code>
 </article>-->
 
 <article style="hyphens:none;">
-  <header><h3>Generative Parametric Random Stimulus API</h3></header>
-  <p class="center">WIP: <a href="https://github.com/girantinas/randomapi">github.com/girantinas/randomapi</a>. A parameteric hardware stimgen API written in Scala.</p>
-  <pre><code class="language-scala medium">enum Operator: case Add, Sub, Mul, Div
+<header><h3>Generative Parametric Random Stimulus API</h3></header>
+<ul>
+<li>Existing declarative constrained random APIs do not permit <em>controllable</em> randomness; only a single seed can be set</li>
+<li>We propose a functional API for random stimulus generation that is backed by a source of randomness or a controllable bytestream</li>
+</ul>
+
+  <!--<pre><code class="language-scala small">val tupGen: Gen[Int, Int, String] = for {
+  lit1 <- Gen.range(0, 10)
+  lit2 <- Gen.range(11, 20)
+  op <- Gen.oneOf(Seq("add", "sub"),
+                  Seq(0.1, 0.9))
+} yield (lit1, lit2, op)
+tupGen.generate(ScalaRandom(seed=10))
+tupGen.generate(Parametric(Seq[Byte]))</code></pre>-->
+
+<pre><code class="language-scala small">val seqGen: Gen[Seq[Int]] = for {
+  lit <- Gen.range(0, 10)
+  tailGen <- Gen.oneOf(Gen(Seq()) -> 0.1,
+    seqGen -> 0.9),
+  seqn <- tailGen.map(t => lit +: t)
+} yield seqn
+seqGen.generate(ParametricRandom(Seq[Byte]))
+// Seq(6, 7, 0, 9, 0, 7)
+seqGen.generate(ScalaRandom(seed=10))
+// Seq(9, 8, 3)</code></pre>
+
+<p class="center small"><a href="https://github.com/girantinas/randomapi">github.com/girantinas/randomapi</a></p>
+
+<!--
+  enum Operator: case Add, Sub, Mul, Div
 
 def sexpr(operator: Gen[Operator],
   literal1: Gen[Int],
@@ -191,10 +231,33 @@ val opGen = Gen.oneOf(Operator.values)
 val lit1 = Gen.range(0, 10)
 val lit2 = Gen.range(11, 20)
 sexpr(...).generate(ScalaRandom)
-sexpr(...).generate(Stream[Byte])</code></pre>
+sexpr(...).generate(Stream[Byte])
+-->
   </article>
 
-  <!--<figure style="flex-grow: 9999999">
+  <article>
+<header><h3>RV32I StimGen + Parametric Fuzzing</h3></header>
+<ul>
+<li>A rv32ui stimulus generator with basic sequences (Inst, RAW, Loop, Branch) was created using this API</li>
+<li>The generator is put in a parametric fuzzing loop with spike's memory model</li>
+</ul>
+<img src="parametric_fuzzing.svg" />
+<ul>
+<li>WIP: Chisel CRV integration, parametric fuzzing results</li>
+</ul>
+</article>
+
+<article>
+<header><h3>Other Ongoing Projects</h3></header>
+<ul>
+<li><strong>Hardware coverage visualization webapp</strong>: a new take on a coverage frontend that can natively parse UCIS and Verilator databases, compute custom coverage scores, and display coverage heatmaps</li>
+<li><strong>rtl2graph</strong>: a FIRRTL → graph compiler to support circuit embeddings</li>
+<li><strong>SimCommand VIPs</strong>: VIPs written using SimCommand APIs for AXI4 and TileLink</li>
+<!-- Simulator independent coverage -->
+</ul>
+</article>
+
+<!--<figure style="flex-grow: 9999999">
     <img style="width: 70%" src="logo.svg" alt="Project logo" />
     <figcaption>A stand-alone figure to fill the remaining space.</figcaption>
     </figure>
@@ -202,9 +265,9 @@ sexpr(...).generate(Stream[Byte])</code></pre>
     </main>
 
     <footer>
-      <address class="monospace">  <a href="https://github.com/vighneshiyer/simcommand">https://github.com/vighneshiyer/simcommand</a>
+      <address class="monospace" style="font-weight:400;">  <a href="https://github.com/vighneshiyer/simcommand">https://github.com/vighneshiyer/simcommand</a>
 </address>
-      <address class="monospace">  vighnesh.iyer@berkeley.edu
+      <address class="monospace" style="font-weight:400;">  vighnesh.iyer@berkeley.edu
 </address>
               <span class="credits">
     SLICE Retreat, Winter 2023
