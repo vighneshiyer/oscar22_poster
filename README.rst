@@ -2,6 +2,8 @@
  A template for (more) accessible posters, using HTML+CSS
 ==========================================================
 
+**ARCHIVED** - these posters are now hosted here: https://github.com/vighneshiyer/publications/tree/master/posters
+
 Modern HTML+CSS is more than enough for most academic posters:
 
 - No more fighting with LaTeX+Beamer or PowerPoint/LibreOffice.
